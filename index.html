@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Page Assistant — a grounded, talking assistant for any web app</title>
+  <meta name="description" content="Drop a voice assistant into any web app. It reads the page, performs real actions, never hallucinates, and publishes an llm.txt so other AI agents can use your app too." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <nav>
+      <span class="logo"><span class="dot"></span> Page Assistant</span>
+      <div class="links">
+        <a href="#how">How it works</a>
+        <a href="#demo">Demo</a>
+        <a href="#agents">For agents</a>
+        <a href="https://github.com/philipposk/page-assistant" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+    <div class="hero-inner">
+      <h1>A talking assistant that <em>actually does things</em> in your app.</h1>
+      <p class="lead">
+        Drop it into any website. It reads the page, runs your real features by voice or text,
+        and <strong>never makes up results</strong>. It even publishes an <code>llm.txt</code> so other
+        AI agents can drive your app.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#how">Get Page Assistant</a>
+        <a class="btn ghost" href="#demo">Watch the 60-second demo</a>
+      </div>
+      <p class="sub">Open source · MIT · built from the strive assistant, Daisy voice, and AI-OS memory.</p>
+    </div>
+  </header>
+
+  <section class="band" id="why">
+    <h2>Why it doesn't hallucinate</h2>
+    <p class="band-lead">Most "AI on your site" widgets let the model <em>claim</em> it did something. This one can't.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>1 · It can only do what you register</h3>
+        <p>You expose real functions as "capabilities". No capability for a request? It says so — it never pretends.</p>
+      </div>
+      <div class="card">
+        <h3>2 · Your numbers, not the model's</h3>
+        <p>Each capability returns the real result and renders the user-facing text. The model narrates around facts, it doesn't invent them.</p>
+      </div>
+      <div class="card">
+        <h3>3 · A validator catches lies</h3>
+        <p>If the model writes a number no function actually returned, it's rejected and replaced with the real output. Proven in tests.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo" id="demo">
+    <h2>See it work — for real</h2>
+    <p class="band-lead">
+      In this demo a user asks, by voice, to simulate a high-yield cross, get the predicted plant height,
+      and re-run with a shorter parent when it's too tall — and the live assistant does every step on the real app.
+      Two voices: the user (male) and the assistant (female).
+    </p>
+    <div class="video-wrap">
+      <video controls poster="assets/greenpert-live.png" preload="none">
+        <source src="assets/demo.mp4" type="video/mp4" />
+        Your browser can't play the demo video. <a href="assets/demo.mp4">Download it</a>.
+      </video>
+    </div>
+    <p class="caption">Live on greenpert.6x7.gr — the assistant scanned the real app (6 pages, 21 controls) and ran the real breeding simulator.</p>
+  </section>
+
+  <section class="band" id="how">
+    <h2>Add it in three steps</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="num">1</span>
+        <h3>Run the backend</h3>
+        <p>A tiny Node service holds your API keys and proxies the model + voice. Keys never reach the browser.</p>
+        <pre><code>npm i @page-assistant/server
+# set ANTHROPIC_API_KEY (or OpenAI / OpenRouter)
+npx page-assistant-server   # :8787</code></pre>
+      </div>
+      <div class="step">
+        <span class="num">2</span>
+        <h3>Embed the widget</h3>
+        <p>One script tag, or an import in React/Next/Vue. A floating mascot appears bottom-right.</p>
+        <pre><code>&lt;script src="https://unpkg.com/@page-assistant/widget/dist/page-assistant.global.js"&gt;&lt;/script&gt;</code></pre>
+      </div>
+      <div class="step">
+        <span class="num">3</span>
+        <h3>Register your real actions</h3>
+        <p>Map the things your app can do to functions. That's the whole integration.</p>
+        <pre><code>PageAssistant.init({
+  serverUrl: "http://localhost:8787",
+  appName: "My App",
+  voice: true,
+  capabilities: [{
+    name: "simulate_cross",
+    description: "Simulate a cross and predict yield + height.",
+    parameters: { type:"object", properties:{
+      a:{type:"string"}, b:{type:"string"} }, required:["a","b"] },
+    run: ({a,b}) =&gt; myApp.simulate(a,b),   // your REAL function
+    render: (r,a) =&gt; `Yield ${r.yield}/100, height ${r.low}–${r.high} cm.`
+  }]
+});</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="split" id="voice">
+    <div class="split-text">
+      <h2>It talks. And listens.</h2>
+      <p>
+        Free out of the box using the browser's built-in voices, or switch on
+        ElevenLabs + Whisper for studio-quality speech. Talk over it and it stops instantly —
+        a real conversation, not a press-to-talk toy.
+      </p>
+      <ul>
+        <li>Voice in (speech-to-text) and voice out (text-to-speech)</li>
+        <li>Barge-in: interrupt any time</li>
+        <li>Reads the page on first open, so it understands where the user is</li>
+      </ul>
+    </div>
+    <div class="split-img">
+      <img src="assets/widget-demo.png" alt="The page assistant widget open on a page" />
+    </div>
+  </section>
+
+  <section class="band" id="agents">
+    <h2>Other AI agents can use your app too</h2>
+    <p class="band-lead">
+      The assistant publishes a machine-readable contract. Any agent can discover what your app does
+      and drive it — getting the same grounded, validated results a human would.
+    </p>
+    <div class="cards">
+      <div class="card">
+        <h3>GET /llm.txt</h3>
+        <p>A plain-language description of your app and every action its assistant can take.</p>
+      </div>
+      <div class="card">
+        <h3>GET /.well-known/llm-actions.json</h3>
+        <p>The same, machine-first: a JSON manifest of capabilities and their parameters.</p>
+      </div>
+      <div class="card">
+        <h3>POST /v1/agent</h3>
+        <p>The living assistant. Another agent sends a request in plain English; your app does it.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      <a href="https://github.com/philipposk/page-assistant" target="_blank" rel="noopener">Source on GitHub</a> ·
+      MIT License · part of the <a href="https://6x7.gr" target="_blank" rel="noopener">6x7.gr</a> family
+    </p>
+  </footer>
+</body>
+</html>
