@@ -13,6 +13,7 @@
       <span class="logo"><span class="dot"></span> Page Assistant</span>
       <div class="links">
         <a href="#how">How it works</a>
+        <a href="#modes">Lite or Agent</a>
         <a href="#demo">Demo</a>
         <a href="#agents">For agents</a>
         <a href="https://github.com/philipposk/page-assistant" target="_blank" rel="noopener">GitHub</a>
@@ -104,6 +105,118 @@ npx page-assistant-server   # :8787</code></pre>
 });</code></pre>
       </div>
     </div>
+  </section>
+
+  <section class="band" id="modes">
+    <h2>Two ways to run it: Lite and Agent</h2>
+    <p class="band-lead">
+      <strong>Lite</strong> is the widget above: one script, any website, your actions run in the page.
+      <strong>Agent</strong> moves the assistant's brain to your server, next to your data and your logins,
+      and gives React and Next.js apps a dock that can change real data safely and show people around.
+      Same grounding, same "never makes up results" — pick per app, or run both.
+    </p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr><th></th><th>Lite</th><th>Agent</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Fits</th><td>Any site: a script tag or an import (React, Vue, plain HTML)</td><td>React 19 / Next.js apps with a server (Vercel works)</td></tr>
+          <tr><th>The thinking runs</th><td>In the browser; your server only passes each message to the model</td><td>On your server, signed in as the user</td></tr>
+          <tr><th>Actions</th><td>Functions on the page (filter, calculate, open)</td><td>Your real API — create, rename, delete — with your database's own access rules</td></tr>
+          <tr><th>Before anything risky</th><td>Asks first for actions you mark</td><td>Shows a confirm card. Only your click runs it, once; the AI alone never can</td></tr>
+          <tr><th>Text from strangers</th><td>Grounding + validator</td><td>After reading someone else's text (a document, a message), it changes nothing without your OK</td></tr>
+          <tr><th>Shows people around</th><td>Links in replies</td><td>Opens pages, rings the right control, narrates guided tours</td></tr>
+          <tr><th>When things go wrong</th><td>Rate limits on the proxy</td><td>Per-user limits, time limits, automatic retry and a fallback model — and a plain-language reply, never a hang</td></tr>
+          <tr><th>Chat history</th><td>On the device or in the user's account</td><td>The same — same tables, same adapters</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cards two">
+      <div class="card">
+        <h3>Pick Lite when…</h3>
+        <p>it's a static or non-React site, you want one script tag, or the useful actions are things the page itself can do.</p>
+      </div>
+      <div class="card">
+        <h3>Pick Agent when…</h3>
+        <p>the assistant should change real data (add, rename, delete, send), you need a confirm step you can trust, or it should demo your product with tours.</p>
+      </div>
+    </div>
+
+    <h3 class="modes-sub">Add Agent mode to a Next.js app</h3>
+    <p class="band-lead">Not on npm yet — vendor it from GitHub, like the apps that already use it.</p>
+    <div class="steps">
+      <div class="step">
+        <span class="num">1</span>
+        <h3>Vendor the SDK</h3>
+        <p>Add it as a submodule, build it, and point your <code>package.json</code> at the packages.</p>
+        <pre><code>git submodule add \
+  https://github.com/philipposk/page-assistant.git \
+  vendor/page-assistant
+cd vendor/page-assistant
+npm ci --include=dev &amp;&amp; npm run build
+
+# package.json → dependencies
+"@page-assistant/core":   "file:vendor/page-assistant/packages/core",
+"@page-assistant/server": "file:vendor/page-assistant/packages/server",
+"@page-assistant/widget": "file:vendor/page-assistant/packages/widget",
+"@page-assistant/react":  "file:vendor/page-assistant/packages/react"</code></pre>
+      </div>
+      <div class="step">
+        <span class="num">2</span>
+        <h3>One route</h3>
+        <p>Your sign-in check and your real actions. Mark anything that can't be undone <code>"confirm"</code>.</p>
+        <pre><code>// app/api/pa/agent/route.ts
+import { createAgentRoute } from
+  "@page-assistant/server/next";
+
+export const { GET, POST } = createAgentRoute({
+  appName: "My App",
+  getUser: () =&gt; currentUserId(),   // no user → 401
+  context: () =&gt; supabaseForUser(), // tools act as the user
+  tools: [{
+    name: "delete_note",
+    description: "Delete a note for good.",
+    risk: "confirm",                   // a card, then your click
+    parameters: { type:"object",
+      properties:{ id:{type:"string"} }, required:["id"] },
+    run: async ({ id }, ctx) =&gt; {
+      const { error } = await ctx.app
+        .from("notes").delete().eq("id", id);
+      return error ? { ok:false, error:"Couldn't delete it." }
+                   : { ok:true };
+    },
+    render: () =&gt; "Deleted.",
+  }],
+});</code></pre>
+      </div>
+      <div class="step">
+        <span class="num">3</span>
+        <h3>One component</h3>
+        <p>Drop the dock into your layout. Tag what it may point at with <code>data-pa-anchor</code>.</p>
+        <pre><code>"use client";
+import { AgentDock } from "@page-assistant/react";
+import { useRouter } from "next/navigation";
+
+export function Assistant() {
+  const router = useRouter();
+  return (
+    &lt;AgentDock
+      endpoint="/api/pa/agent"
+      navigate={(p) =&gt; router.push(p)}
+      voice
+    /&gt;
+  );
+}
+
+// &lt;ul data-pa-anchor="notes.list"&gt;…&lt;/ul&gt;</code></pre>
+      </div>
+    </div>
+    <p class="caption modes-links">
+      Set <code>ANTHROPIC_API_KEY</code> (OpenAI and OpenRouter work as fallbacks) ·
+      <a href="https://github.com/philipposk/page-assistant/blob/main/INTEGRATION.md#9-agent-mode-server-side-tool-loop--react-dock" target="_blank" rel="noopener">Full guide</a> ·
+      <a href="https://github.com/philipposk/page-assistant/tree/main/examples/next-agent" target="_blank" rel="noopener">Runnable Next.js + Supabase example</a>
+    </p>
   </section>
 
   <section class="split" id="voice">
